@@ -5,8 +5,7 @@
 ### Option 1: Streamlit UI (Easiest)
 
 ```bash
-cd /Users/roro/Desktop/Tools/pricing_tool
-streamlit run low_occupancy_tool/low_occupancy_ui.py
+streamlit run low_occupancy_ui.py
 ```
 
 Then open http://localhost:8501 in your browser.
@@ -14,8 +13,7 @@ Then open http://localhost:8501 in your browser.
 ### Option 2: Command Line
 
 ```bash
-cd /Users/roro/Desktop/Tools/pricing_tool
-python low_occupancy_tool/export_low_occupancy_dates.py \
+python export_low_occupancy_dates.py \
   --properties onera wb1 \
   --lookahead-days 60 \
   --output results.csv
@@ -29,7 +27,7 @@ python low_occupancy_tool/export_low_occupancy_dates.py \
 
 **CLI**:
 ```bash
-python low_occupancy_tool/export_low_occupancy_dates.py \
+python export_low_occupancy_dates.py \
   --properties onera wb1 azulik1 \
   --lookahead-days 90
 ```
@@ -40,7 +38,7 @@ python low_occupancy_tool/export_low_occupancy_dates.py \
 
 **CLI**:
 ```bash
-python low_occupancy_tool/export_low_occupancy_dates.py \
+python export_low_occupancy_dates.py \
   --properties onera \
   --threshold-mode manual \
   --manual-threshold 25
@@ -52,7 +50,7 @@ python low_occupancy_tool/export_low_occupancy_dates.py \
 
 **CLI**:
 ```bash
-python low_occupancy_tool/export_low_occupancy_dates.py \
+python export_low_occupancy_dates.py \
   --properties onera wb1 \
   --no-fresh-data
 ```
@@ -63,7 +61,7 @@ python low_occupancy_tool/export_low_occupancy_dates.py \
 
 **CLI**:
 ```bash
-python low_occupancy_tool/export_low_occupancy_dates.py \
+python export_low_occupancy_dates.py \
   --properties onera wb1 \
   --force-fresh-pull
 ```
