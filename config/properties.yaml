@@ -1,0 +1,830 @@
+properties:
+  onera: # Combined Fredericksburg Basse 1 & 2 properties
+    # Documentation: Defines configuration for the combined 'Onera' property.
+    name: "Onera" # User-friendly name
+    pms: cloudbeds
+    total_units: 38 # Total units across all listings (12 from fb1 + 23 from fb2)
+    listings:
+      # Maps user-friendly listing names to their unique IDs used in data files.
+      # Ensure these IDs match those in pl_daily_*.csv etc.
+      # Original fb1 listings
+      - {name: "Cocoon", id: "203812___362535", batna: 189.00}
+      - {name: "Walnut House", id: "203812___364773", batna: 209.00}
+      - {name: "Spyglass", id: "203812___364776", batna: 209.00}
+      - {name: "Live Oak Lodge", id: "203812___364778", batna: 209.00}
+      - {name: "Lantana Dome", id: "203812___364779", batna: 189.00}
+      - {name: "Sage Safari", id: "203812___364780", batna: 189.00}
+      - {name: "Monarch", id: "203812___364781", batna: 209.00}
+      - {name: "Buckeye Bungalow", id: "203812___364782", batna: 189.00}
+      - {name: "Cedar Haus", id: "203812___490007", batna: 169.00}
+      - {name: "Juniper Haus", id: "203812___490024", batna: 169.00}
+      - {name: "Pecan Haus", id: "203812___528745", batna: 169.00}
+      - {name: "Bluebonnet", id: "203812___634080", batna: 189.00}
+      # Original fb2 listings
+      - {name: "Great Lodge", id: "203812___643757", units: 1, batna: 1352}
+      - {name: "Great Lodge: King Room", id: "203812___643775", units: 6, batna: 169.00}
+      - {name: "Great Lodge: King Room (Accessible)", id: "203812___657152", units: 2, batna: 169.00}
+      - {name: "Cypress Lodge | Sleeps 2", id: "203812___655826", units: 2, batna: 169.00}
+      - {name: "Cypress Lodge | Sleeps 4", id: "203812___643762", units: 2, batna: 229.00}
+      - {name: "Cypress Lodge | Sleeps 6", id: "203812___655827", units: 2, batna: 229.00}
+      - {name: "Diamond", id: "203812___643771", units: 3, batna: 229.00}
+      - {name: "Monolith", id: "203812___643773", units: 2, batna: 229.00}
+      - {name: "Post Oak", id: "203812___643760", units: 1, batna: 169.00}
+      - {name: "Quonset", id: "203812___643764", units: 2, batna: 209.00}
+      - {name: "Spiral", id: "203812___643772", units: 1, batna: 229.00}
+      - {name: "Winecup", id: "203812___643766", units: 2, batna: 209.00}
+    rate_group_mapping:
+      # Maps internal rate group keys (used by calculator.py)
+      # to the specific rate column NAMES in the rate_table_*.csv file.
+      # AND maps these keys to the list of listing IDs they apply to.
+      # Keys (e.g., rate_1) MUST match columns in the rate table CSV.
+      # Reorganized to group similar pricing tiers together
+      rate_1: ["203812___364781", "203812___364776", "203812___364778", "203812___364773"] # Original fb1 rate_1
+      rate_2: ["203812___364780", "203812___362535", "203812___364782", "203812___364779", "203812___634080"] # Original fb1 rate_2
+      rate_3: ["203812___490007", "203812___490024", "203812___528745"] # Original fb1 rate_3
+      rate_4: ["203812___643772", "203812___643771"] # Original fb2 rate_1 (Spiral, Diamond)
+      rate_5: ["203812___643766", "203812___643764"] # Original fb2 rate_2 (Winecup, Quonset)
+      rate_6: ["203812___643757"] # Original fb2 rate_3 (Great Lodge)
+      rate_7: ["203812___643775", "203812___657152"] # Original fb2 rate_4 (King Room variants)
+      rate_8: ["203812___643773"] # Original fb2 rate_5 (Monolith)
+      rate_9: ["203812___655826", "203812___643762", "203812___655827"] # Original fb2 rate_6 (Cypress Lodge units)
+      rate_10: ["203812___643760"] # Original fb2 rate_7 (Post Oak)
+    adjustment_rules:
+      # Defines rules for adjusting rates based on conditions (e.g., adjacent day bookings).
+      # Referenced by calculator.apply_adjustment_rules.
+      - name: "Thursday Rate Adjustment (Fri Booked)"
+        target_weekday: 3 # 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 1} # Check if Friday is booked
+        actions:
+          - condition: null # Default action if Friday booked
+            multiplier: 1.1
+            reference_day_offset: -1
+            lookup_day_group: "Mon-Wed"
+      - name: "Sunday Rate Adjustment (Sat Booked)"
+        target_weekday: 6 # Sunday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -1} # Check Saturday
+        actions:
+          - condition: null # Always apply if Saturday booked
+            multiplier: 1.2
+            reference_day_offset: 1 # Base rate on Monday's tier
+            lookup_day_group: "Mon-Wed"
+      - name: "Friday Orphan Adjustment"
+        target_weekday: 4 # Friday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -1} # Check if Thursday is booked
+          - {type: "adjacent_day_booked", day_offset: 1}  # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if conditions met
+            multiplier: 0.8
+            reference_day_offset: 1 # Base rate on Saturday's tier
+            lookup_day_group: "Fri-Sat" # Use Thu-Sun pricing group
+      - name: "Saturday Booked - Thu/Fri Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [-2, -1] # Thursday (-2) and Friday (-1)
+            check_adjacent_weekday_los: true # Check Wednesday (day before Thursday) is at 1-night
+      - name: "Saturday Booked - Sunday Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [1] # Sunday (+1) only
+            check_adjacent_weekday_los: true # Check Monday (day after Sunday) is at 1-night
+    booking_window_definitions:
+      # Defines labels and day ranges for booking windows.
+      # Used by utils.get_booking_window_label.
+      # Ensure ranges cover all possibilities and don't overlap.
+      - { label: "0-9 Days (W1)", min_days: 0, max_days: 9 }
+      - { label: "10-21 Days (W2)", min_days: 10, max_days: 21 }
+      - { label: "22-30 Days (W3)", min_days: 22, max_days: 30 }
+      - { label: "31-45 Days (W4)", min_days: 31, max_days: 45 }
+      - { label: "46-59 Days (W5)", min_days: 46, max_days: 59 }
+      - { label: "60-120 Days (W6)", min_days: 60, max_days: 120 }
+      - { label: ">120 Days (W7)", min_days: 121, max_days: 9999 }
+    urgency_band_definitions:
+      # Defines labels and day ranges for urgency bands.
+      # Used by utils.get_urgency_band.
+      - { label: "0-1", min_days: 0, max_days: 1 }
+      - { label: "2-3", min_days: 2, max_days: 3 }
+      - { label: "4-6", min_days: 4, max_days: 6 }
+      - { label: "7-9", min_days: 7, max_days: 9 }
+    urgency_configuration:
+      tier_groups: [ "T10-T12", "T13-T15"]
+      booking_window_label: "W1"
+      max_occupancy_pct: 30
+
+  wb1: # Property wb1
+    # Documentation: Defines configuration for the 'wb1' property.
+    name: "Onera Wimberley"
+    pms: cloudbeds
+    total_units: 28  # Total units across all listings
+    listings:
+      - {name: "Greenhouse", id: "316005___633306", units: 9, batna: 169.00}
+      - {name: "Greenhouse ADA", id: "316005___633307", units: 1, batna: 169.00}
+      - {name: "Spyglass", id: "316005___633310", units: 5, batna: 189.00}
+      - {name: "Spyglass ADA", id: "316005___633311", units: 1, batna: 189.00}
+      - {name: "Greenhouse Pet", id: "316005___633308", units: 6, batna: 169.00}
+      - {name: "Spyglass Pet", id: "316005___633312", units: 6, batna: 189.00}
+    rate_group_mapping:
+      rate_1: ["316005___633306", "316005___633307"]
+      rate_2: ["316005___633308"]
+      rate_3: ["316005___633310", "316005___633311"]
+      rate_4: ["316005___633312"]
+    adjustment_rules:
+      # Copied from fb1 - same rules for adjacent day bookings
+      - name: "Thursday Rate Adjustment (Fri Booked)"
+        target_weekday: 3 # 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 1} # Check if Friday is booked
+        actions:
+          - condition: null # Default action if Friday booked
+            multiplier: 1.1
+            reference_day_offset: -1
+            lookup_day_group: "Mon-Wed"
+      - name: "Sunday Rate Adjustment (Sat Booked)"
+        target_weekday: 6 # Sunday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -1} # Check Saturday
+        actions:
+          - condition: null # Always apply if Saturday booked
+            multiplier: 1.2
+            reference_day_offset: 1 # Base rate on Monday's tier
+            lookup_day_group: "Mon-Wed"
+      - name: "Friday Orphan Adjustment"
+        target_weekday: 4 # Friday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -1} # Check if Thursday is booked
+          - {type: "adjacent_day_booked", day_offset: 1}  # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if conditions met
+            multiplier: 0.8
+            reference_day_offset: 1 # Base rate on Saturday's tier
+            lookup_day_group: "Fri-Sat" # Use Thu-Sun pricing group
+      - name: "Saturday Booked - Thu/Fri Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [-2, -1] # Thursday (-2) and Friday (-1)
+            check_adjacent_weekday_los: true # Check Wednesday (day before Thursday) is at 1-night
+      - name: "Saturday Booked - Sunday Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [1] # Sunday (+1) only
+            check_adjacent_weekday_los: true # Check Monday (day after Sunday) is at 1-night
+    booking_window_definitions:
+      - { label: "0-6 Days (W1)", min_days: 0, max_days: 6 }
+      - { label: "7-14 Days (W2)", min_days: 7, max_days: 14 }
+      - { label: "15-29 Days (W3)", min_days: 15, max_days: 29 }
+      - { label: "30-59 Days (W4)", min_days: 30, max_days: 59 }
+      - { label: "60-90 Days (W5)", min_days: 60, max_days: 90 }
+      - { label: ">90 Days (W6)", min_days: 91, max_days: 9999 }
+    urgency_band_definitions:
+      - { label: "0-1", min_days: 0, max_days: 1 }
+      - { label: "2-3", min_days: 2, max_days: 3 }
+      - { label: "4-6", min_days: 4, max_days: 6 }
+    urgency_configuration:
+      tier_groups: ["T10-T12", "T13-T15"]
+      booking_window_label: "W1"
+      max_occupancy_pct: 25
+
+  # --- Template for Adding a New Property ---
+  # new_prop_key: # Must match the data directory name (e.g., data/new_prop_key/)
+  #   name: "New Property Friendly Name"
+  #   listings:
+  #     - {name: "Unit Alpha", id: "PROPERTYID___UNITID1"}
+  #     - {name: "Unit Beta", id: "PROPERTYID___UNITID2"}
+  #   rate_group_mapping:
+  #     # Define rate group keys (e.g., rate_standard, rate_premium)
+  #     # These MUST correspond to columns in data/new_prop_key/rate_table_new_prop_key.csv
+  #     rate_standard: ["PROPERTYID___UNITID1"]
+  #     rate_premium: ["PROPERTYID___UNITID2"]
+  #   adjustment_rules: [] # Add rules similar to fb1 if needed
+  #   booking_window_definitions:
+  #     # Copy or customize definitions
+  #     - { label: "0-9 Days (W1)", min_days: 0, max_days: 9 }
+  #     # ... other windows ...
+  #   urgency_band_definitions:
+  #     # Copy or customize definitions
+  #     - { label: "0-1", min_days: 0, max_days: 1 }
+  #     # ... other bands ...
+
+
+  pblu1:
+    name: "ParcBlu"
+    pms: hostaway
+    listings:
+      - {name: "Love", id: "299754", batna: 120.00}
+      - {name: "Peace", id: "299755", batna: 120.00}
+      - {name: "Joy", id: "299756", batna: 120.00}
+      - {name: "Delight", id: "299757", batna: 140.00}
+      - {name: "Grace", id: "299758", batna: 140.00}
+      - {name: "Dream", id: "299759", batna: 120.00}
+      - {name: "Beauty", id: "299760", batna: 140.00}
+      - {name: "Unit #15 - Livin' the Dream -- Cozy Camper Retreat for Two", id: "465407", batna: 100.00}
+      - {name: "Unit #11 - Favored -- Private Glass Cabin with Covered Porch and Hot Tub", id: "465408", batna: 200.00}
+    rate_group_mapping:
+      rate_1: ["299757", "299758", "299760"] # Delight, Grace, Beauty
+      rate_2: ["299754", "299755", "299756", "299759", "465407", "465408"] # Love, Peace, Joy, Dream, Unit #15, Unit #11
+    booking_window_definitions:
+      - { label: "0-3 Days (W1)", min_days: 0, max_days: 3 }
+      - { label: "4-7 Days (W2)", min_days: 4, max_days: 7 }
+      - { label: "8-19 Days (W3)", min_days: 8, max_days: 19 }
+      - { label: "20-37 Days (W4)", min_days: 20, max_days: 37 }
+      - { label: ">38 Days (W5)", min_days: 38, max_days: 9999 }
+    adjustment_rules:
+      - name: "Thursday Rate Adjustment (Fri Booked)"
+        target_weekday: 3 # Thursday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 1} # Check if Friday is booked
+        actions:
+          - condition: null # Default action if Friday booked
+            multiplier: 1.1
+            reference_day_offset: -1 # Base rate on Wednesday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Sunday Rate Adjustment (Sat Booked)"
+        target_weekday: 6 # Sunday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -1} # Check Saturday
+        actions:
+          - condition: null # Always apply if Saturday booked
+            multiplier: 1.2
+            reference_day_offset: 1 # Base rate on Monday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Friday Orphan Adjustment"
+        target_weekday: 4 # Friday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -1} # Check if Thursday is booked
+          - {type: "adjacent_day_booked", day_offset: 1}  # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if conditions met
+            multiplier: 0.8
+            reference_day_offset: 1 # Base rate on Saturday's live rate
+            lookup_day_group: "Fri-Sat"
+      - name: "Saturday Booked - Thu/Fri Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [-2, -1] # Thursday (-2) and Friday (-1)
+            check_adjacent_weekday_los: true # Check Wednesday (day before Thursday) is at 1-night
+      - name: "Saturday Booked - Sunday Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [1] # Sunday (+1) only
+            check_adjacent_weekday_los: true # Check Monday (day after Sunday) is at 1-night
+
+  atx1:
+    name: "Austin"
+    pms: hostaway
+    listings:
+      - {name: "Romney", id: "320201", batna: 139.00}
+      - {name: "Sunstrip", id: "320203", batna: 169.00}
+      - {name: "Malvern", id: "389561", batna: 159.00}
+    rate_group_mapping:
+      rate_4: ["320203"] # Sunstrip
+      rate_2: ["389561"] # Malvern
+      rate_1: ["320201"] # Romney
+    booking_window_definitions:
+      - { label: "0-7 Days (W1)", min_days: 0, max_days: 7 }
+      - { label: "8-30 Days (W2)", min_days: 8, max_days: 30 }
+      - { label: "31-90 Days (W3)", min_days: 31, max_days: 90 }
+      - { label: "91-180 Days (W4)", min_days: 91, max_days: 180 }
+      - { label: "> 181 Days (W5)", min_days: 181, max_days: 9999 }
+    urgency_band_definitions:
+      - { label: "0-1", min_days: 0, max_days: 1 }
+      - { label: "2-3", min_days: 2, max_days: 3 }
+      - { label: "4-7", min_days: 4, max_days: 7 }
+    urgency_configuration:
+      tier_groups: ["T5-T6"]
+      booking_window_label: "W1"
+      max_occupancy_pct: 15
+    adjustment_rules:
+      - name: "Three Day Consecutive - Reduce Gap Days"
+        target_weekday: 3 # Thursday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 1} # Friday booked
+          - {type: "adjacent_day_booked", day_offset: 2} # Saturday booked
+          - {type: "adjacent_day_not_booked", day_offset: -1} # Thursday NOT booked
+        actions:
+          - condition: null # Apply when Thu+Fri+Sat are booked but Thu is not
+            multiplier: 1.1 # 110% of Monday's rate
+            reference_day_offset: -3 # Base rate on Monday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Three Day Consecutive - Reduce Gap Days"
+        target_weekday: 6 # Sunday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -2} # Friday booked
+          - {type: "adjacent_day_booked", day_offset: -1} # Saturday booked
+          - {type: "adjacent_day_not_booked", day_offset: 1} # Sunday NOT booked
+        actions:
+          - condition: null # Apply when Fri+Sat+Sun are booked but Sun is not
+            multiplier: 1.2 # 120% of Wednesday's rate
+            reference_day_offset: -4 # Base rate on Wednesday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Weekend Both Booked - Standard Adjustment"
+        target_weekday: 3 # Thursday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 1} # Friday booked
+          - {type: "adjacent_day_booked", day_offset: 2} # Saturday booked
+          - {type: "adjacent_day_booked", day_offset: -1} # Thursday also booked (not 3-day consecutive)
+        actions:
+          - condition: null # Apply when Fri+Sat are booked (standard weekend)
+            multiplier: 1.1 # 110% of Monday's rate
+            reference_day_offset: -3 # Base rate on Monday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Weekend Both Booked - Standard Adjustment"
+        target_weekday: 6 # Sunday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -2} # Friday booked
+          - {type: "adjacent_day_booked", day_offset: -1} # Saturday booked
+          - {type: "adjacent_day_booked", day_offset: 1} # Sunday also booked (not 3-day consecutive)
+        actions:
+          - condition: null # Apply when Fri+Sat are booked (standard weekend)
+            multiplier: 1.2 # 120% of Wednesday's rate
+            reference_day_offset: -4 # Base rate on Wednesday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Friday Only Booked - Enforce Two Night"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -1} # Friday booked
+          - {type: "adjacent_day_not_booked", day_offset: 0} # Saturday NOT booked (target day)
+        actions:
+          - condition: null # Apply when Friday booked but Saturday not
+            los_adjustment: 2 # Set to 2-night minimum
+      - name: "Saturday Only Booked - Enforce Two Night"
+        target_weekday: 4 # Friday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 1} # Saturday booked
+          - {type: "adjacent_day_not_booked", day_offset: 0} # Friday NOT booked (target day)
+        actions:
+          - condition: null # Apply when Saturday booked but Friday not
+            los_adjustment: 2 # Set to 2-night minimum
+
+  sos1:
+    name: "Spirit of Sofia"
+    pms: guesty
+    total_units: 3 # Sum of units below
+    listings:
+      - {name: "12BR/Sleeps 30! Designer Poolside Adventure Dwtn!", id: "68642480da9649000fc63fc5", units: 1, batna: 750.00, batna_weekday: 750.00, batna_weekend: 1000.00}
+      - {name: "11BR Designer Villa! Poolside Dntwn PS! Sleeps 30", id: "686424c7c8d43b001321df29", units: 1, batna: 650.00, batna_weekday: 650.00, batna_weekend: 900.00}
+      - {name: "23BR Designer Concept Buyout! True PS Experience!", id: "686424d94cdb20000e10b8db", units: 1, batna: 1500.00, batna_weekday: 1500.00, batna_weekend: 2000.00}
+      # Old listings (commented out)
+      #- {name: "Sofia Suite", id: "225828___460628", units: 1}
+      #- {name: "8BR Villa", id: "225828___460647", units: 1}
+      #- {name: "11BR Villa", id: "225828___460648", units: 1}
+      #- {name: "12BR Villa", id: "225828___460646", units: 1}
+      #- {name: "23BR Buyout", id: "225828___460659", units: 1}
+      #- {name: "Deluxe King Suite", id: "225828___640390", units: 5}
+      #- {name: "Queen Suite", id: "225828___640661", units: 4}
+      #- {name: "King Suite (Front)", id: "225828___640662", units: 2}
+      #- {name: "King Suite (Back)", id: "225828___640673", units: 4}
+      #- {name: "Superior King Suite", id: "225828___640676", units: 4}
+    rate_group_mapping:
+      rate_1: ["686424d94cdb20000e10b8db"] # 23BR
+      rate_2: ["686424c7c8d43b001321df29", "68642480da9649000fc63fc5"] # 11BR, 12BR
+      # Old mapping (commented out)
+      # rate_1: ["225828___460659"] # 23BR
+      # rate_2: ["225828___460647", "225828___460648", "225828___460646"] # 8BR, 11BR, 12BR
+      # rate_3: ["225828___460628"] # 3BR (Sofia Suite)
+      # rate_4: ["225828___640390"] # Deluxe King Suite (5 units)
+      # rate_5: ["225828___640661"] # Queen Suite (4 units)
+      # rate_6: ["225828___640662"] # King Suite Front (2 units)
+      # rate_7: ["225828___640673"] # King Suite Back (4 units)
+      # rate_8: ["225828___640676"] # Superior King Suite (4 units)
+    booking_window_definitions:
+      # Defines labels and day ranges for booking windows.
+      # Used by utils.get_booking_window_label.
+      # Ensure ranges cover all possibilities and don't overlap.
+      - { label: "0-9 Days (W1)", min_days: 0, max_days: 9 }
+      - { label: "10-21 Days (W2)", min_days: 10, max_days: 21 }
+      - { label: "22-30 Days (W3)", min_days: 22, max_days: 30 }
+      - { label: "31-45 Days (W4)", min_days: 31, max_days: 45 }
+      - { label: "46-59 Days (W5)", min_days: 46, max_days: 59 }
+      - { label: "60-120 Days (W6)", min_days: 60, max_days: 120 }
+      - { label: ">120 Days (W7)", min_days: 121, max_days: 9999 }
+    urgency_band_definitions:
+      - { label: "0-1", min_days: 0, max_days: 1 }
+      - { label: "2-3", min_days: 2, max_days: 3 }
+      - { label: "4-6", min_days: 4, max_days: 6 }
+      - { label: "7-9", min_days: 7, max_days: 9 }
+    adjustment_rules:
+      - name: "Saturday Booked - Thu/Fri Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [-2, -1] # Thursday (-2) and Friday (-1)
+            check_adjacent_weekday_los: true # Check Wednesday (day before Thursday) is at 1-night
+      - name: "Saturday Booked - Sunday Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [1] # Sunday (+1) only
+            check_adjacent_weekday_los: true # Check Monday (day after Sunday) is at 1-night
+
+  spm1:
+    name: "Spoon Mountain"
+    pms: ownerrez
+    listings:
+      - {name: "Chisum", id: "278915", batna: 189.00}
+      - {name: "Kingfisher", id: "303587", batna: 189.00}
+      - {name: "Shaka", id: "303588", batna: 189.00}
+    rate_group_mapping:
+      rate_1: ["278915", "303587", "303588"] # Chisum, Kingfisher, Shaka
+    booking_window_definitions:
+      - { label: "0-3 Days (W1)", min_days: 0, max_days: 3 }
+      - { label: "4-10 Days (W2)", min_days: 4, max_days: 10 }
+      - { label: "11-30 Days (W3)", min_days: 11, max_days: 30 }
+      - { label: "31-60 Days (W4)", min_days: 31, max_days: 60 }
+      - { label: "61-120 Days (W5)", min_days: 61, max_days: 120 }
+      - { label: ">121 Days (W6)", min_days: 121, max_days: 9999 }
+    adjustment_rules:
+      - name: "Weekend Both Booked - Reduce Gap Days"
+        target_weekday: 3 # Thursday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 1} # Friday booked
+          - {type: "adjacent_day_booked", day_offset: 2} # Saturday booked
+        actions:
+          - condition: null # Apply when both Friday and Saturday are booked
+            multiplier: 0.75 # 25% reduction
+            reference_day_offset: -1 # Base rate on Wednesday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Weekend Both Booked - Reduce Gap Days"
+        target_weekday: 6 # Sunday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -2} # Friday booked
+          - {type: "adjacent_day_booked", day_offset: -1} # Saturday booked
+        actions:
+          - condition: null # Apply when both Friday and Saturday are booked
+            multiplier: 0.75 # 25% reduction
+            reference_day_offset: 1 # Base rate on Monday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Friday Only Booked - Increase Thursday"
+        target_weekday: 3 # Thursday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 1} # Friday booked
+          - {type: "adjacent_day_not_booked", day_offset: 2} # Saturday NOT booked
+        actions:
+          - condition: null # Apply when Friday booked but Saturday not
+            multiplier: 1.1 # 110% of Wednesday's rate
+            reference_day_offset: -1 # Base rate on Wednesday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Saturday Only Booked - Increase Sunday"
+        target_weekday: 6 # Sunday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -1} # Saturday booked
+          - {type: "adjacent_day_not_booked", day_offset: -2} # Friday NOT booked
+        actions:
+          - condition: null # Apply when Saturday booked but Friday not
+            multiplier: 1.2 # 120% of Monday's rate
+            reference_day_offset: 1 # Base rate on Monday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Friday Only Booked - Reduce Thursday LOS"
+        target_weekday: 3 # Thursday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 1} # Friday booked
+          - {type: "adjacent_day_not_booked", day_offset: 2} # Saturday NOT booked
+        actions:
+          - condition: null # Apply when Friday booked but Saturday not
+            los_adjustment: 1 # Set to 1-night minimum
+            check_adjacent_weekday_los: true # Check Mon-Wed for 2-night requirement
+      - name: "Saturday Booked - Thu/Fri Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [-2, -1] # Thursday (-2) and Friday (-1)
+            check_adjacent_weekday_los: true # Check Wednesday (day before Thursday) is at 1-night
+      - name: "Saturday Booked - Sunday Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [1] # Sunday (+1) only
+            check_adjacent_weekday_los: true # Check Monday (day after Sunday) is at 1-night
+
+  flo1:
+    name: "FLOHOM"
+    pms: hostaway
+    listings:
+      - {name: "FLOHOM 1", id: "146908", batna: 275.00}
+      - {name: "FLOHOM 2", id: "146944", batna: 225.00}
+      - {name: "FLOHOM 3", id: "146946", batna: 125.00}
+      - {name: "FLOHOM 4", id: "260001", batna: 275.00}
+      - {name: "FLOHOM 5", id: "278502", batna: 200.00}
+      - {name: "FLOHOM 6", id: "345316", batna: 300.00}
+      - {name: "FLOHOM 7", id: "366176", batna: 250.00}
+      - {name: "FLOHOM 8", id: "376368", batna: 175.00}
+      - {name: "FLOHOM 9", id: "383097", batna: 200.00}
+      - {name: "FLOHOM 10", id: "404358", batna: 250.00}
+      - {name: "FLOHOM 11", id: "427313", batna: 125.00}
+      - {name: "FLOHOM 12", id: "422608", batna: 250.00}
+      - {name: "FLOHOM 14", id: "407612", batna: 150.00}
+    rate_group_mapping:
+      rate_1: ["146946"] # FLOHOM 3 (lowest)
+      rate_2: ["376368"] # FLOHOM 8
+      rate_3: ["278502", "383097", "404358", "407612", "422608", "427313"] # FLOHOM 5, FLOHOM 9, FLOHOM 10, FLOHOM 14, FLOHOM 12, FLOHOM 11 (randomly assigned, review this!)
+      rate_4: ["146944"] # FLOHOM 2
+      rate_5: ["366176", "345316"] # FLOHOM 7, FLOHOM 6 (equal)
+      rate_6: ["260001"] # FLOHOM 4
+      rate_7: ["146908"] # FLOHOM 1 (highest)
+      # TODO: Assign FLOHOM 14 to a rate group as needed
+    booking_window_definitions:
+      - { label: "0-13 Days (W1)", min_days: 0, max_days: 13 }
+      - { label: "14-33 Days (W2)", min_days: 14, max_days: 33 }
+      - { label: "34-61 Days (W3)", min_days: 34, max_days: 61 }
+      - { label: "62-99 Days (W4)", min_days: 62, max_days: 99 }
+      - { label: ">100 Days (W5)", min_days: 100, max_days: 9999 }
+    urgency_band_definitions:
+      - { label: "0-1", min_days: 0, max_days: 1 }
+      - { label: "2-3", min_days: 2, max_days: 3 }
+      - { label: "4-7", min_days: 4, max_days: 7 }
+      - { label: "8-13", min_days: 8, max_days: 13 }
+    urgency_configuration:
+      tier_groups: [ "T10-T12", "T13-T15"]
+      booking_window_label: "W1"
+      max_occupancy_pct: 14
+    adjustment_rules:
+      - name: "Thursday Rate Adjustment (Fri Booked)"
+        target_weekday: 3 # Thursday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 1} # Check if Friday is booked
+        actions:
+          - condition: null # Default action if Friday booked
+            multiplier: 1.1
+            reference_day_offset: -1 # Base rate on Wednesday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Sunday Rate Adjustment (Sat Booked)"
+        target_weekday: 6 # Sunday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -1} # Check Saturday
+        actions:
+          - condition: null # Always apply if Saturday booked
+            multiplier: 1.2
+            reference_day_offset: 1 # Base rate on Monday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Friday Orphan Adjustment"
+        target_weekday: 4 # Friday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -1} # Check if Thursday is booked
+          - {type: "adjacent_day_booked", day_offset: 1}  # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if conditions met
+            multiplier: 0.8
+            reference_day_offset: 1 # Base rate on Saturday's live rate
+            lookup_day_group: "Fri-Sat"
+      - name: "Saturday Booked - Thu/Fri Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [-2, -1] # Thursday (-2) and Friday (-1)
+            check_adjacent_weekday_los: true # Check Wednesday (day before Thursday) is at 1-night
+      - name: "Saturday Booked - Sunday Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [1] # Sunday (+1) only
+            check_adjacent_weekday_los: true # Check Monday (day after Sunday) is at 1-night
+
+  melrose1:
+    name: "Hotel Melrose"
+    pms: cloudbeds
+    listings:
+      - {name: "Kannah Creek Suites (Single King)", id: "257940___534397", units: 3, batna: 150.00}
+      - {name: "Ponsford Suite (Deluxe King)", id: "257940___537039", units: 7, batna: 165.00}
+      - {name: "Cattlemans Twofold (Deluxe Double Queen)", id: "257940___537043", units: 3, batna: 165.00}
+      - {name: "The London Double (Double Queen)", id: "257940___575558", units: 1, batna: 165.00}
+      - {name: "1884 Quarters (Single Queen)", id: "257940___537037", units: 2, batna: 150.00}
+    rate_group_mapping:
+      rate_1: ["257940___534397", "257940___537039"] # King suites
+      rate_2: ["257940___537043", "257940___575558"] # Double Queen suites
+      rate_3: ["257940___537037"] # Single Queen suite
+    booking_window_definitions:
+      - { label: "0-9 Days (W1)", min_days: 0, max_days: 9 }
+      - { label: "10-21 Days (W2)", min_days: 10, max_days: 21 }
+      - { label: "22-30 Days (W3)", min_days: 22, max_days: 30 }
+      - { label: "31-45 Days (W4)", min_days: 31, max_days: 45 }
+      - { label: "46-59 Days (W5)", min_days: 46, max_days: 59 }
+      - { label: "60-120 Days (W6)", min_days: 60, max_days: 120 }
+      - { label: ">120 Days (W7)", min_days: 121, max_days: 9999 }
+    urgency_band_definitions:
+      - { label: "0-1", min_days: 0, max_days: 1 }
+      - { label: "2-3", min_days: 2, max_days: 3 }
+      - { label: "4-6", min_days: 4, max_days: 6 }
+      - { label: "7-9", min_days: 7, max_days: 9 }
+    urgency_configuration:
+      tier_groups: [ "T10-T12", "T13-T15"]
+      booking_window_label: "W1"
+      max_occupancy_pct: 30
+    adjustment_rules:
+      - name: "Thursday Rate Adjustment (Fri Booked)"
+        target_weekday: 3 # Thursday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 1} # Check if Friday is booked
+        actions:
+          - condition: null # Default action if Friday booked
+            multiplier: 1.1
+            reference_day_offset: -1 # Base rate on Wednesday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Sunday Rate Adjustment (Sat Booked)"
+        target_weekday: 6 # Sunday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -1} # Check Saturday
+        actions:
+          - condition: null # Always apply if Saturday booked
+            multiplier: 1.2
+            reference_day_offset: 1 # Base rate on Monday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Friday Orphan Adjustment"
+        target_weekday: 4 # Friday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -1} # Check if Thursday is booked
+          - {type: "adjacent_day_booked", day_offset: 1}  # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if conditions met
+            multiplier: 0.8
+            reference_day_offset: 1 # Base rate on Saturday's live rate
+            lookup_day_group: "Fri-Sat"      
+      - name: "Saturday Booked - Thu/Fri Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [-2, -1] # Thursday (-2) and Friday (-1)
+            check_adjacent_weekday_los: true # Check Wednesday (day before Thursday) is at 1-night
+      - name: "Saturday Booked - Sunday Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [1] # Sunday (+1) only
+            check_adjacent_weekday_los: true # Check Monday (day after Sunday) is at 1-night
+
+  azulik1:
+    name: "Azulik"
+    pms: cloudbeds
+    total_units: 48 # 8 + 12 + 4 + 11 + 11 + 1 + 1
+    listings:
+      - {name: "AZULIK Jungle Villa", id: "283597___530612", units: 8, batna: 4638.00}
+      - {name: "AZULIK Mayan Villa", id: "283597___530715", units: 12, batna: 5565.00}
+      - {name: "AZULIK Aztec Villa", id: "283597___530718", units: 4, batna: 6122.00}
+      - {name: "AZULIK Sea Villa", id: "283597___530720", units: 11, batna: 7420.00}
+      - {name: "AZULIK Sky Villa", id: "283597___530761", units: 11, batna: 9275.00}
+      - {name: "AZULIK Moon Villa", id: "283597___530766", units: 1, batna: 51940.00}
+      - {name: "AZULIK Aqua Villa", id: "283597___530767", units: 1, batna: 40810.00}
+    rate_group_mapping:
+      rate_1: ["283597___530612", "283597___530718"] # Jungle Villa, Aztec Villa
+      rate_2: ["283597___530715", "283597___530720", "283597___530761"] # Mayan Villa, Sea Villa, Sky Villa
+      rate_3: ["283597___530766", "283597___530767"] # Moon Villa, Aqua Villa
+    booking_window_definitions:
+      - { label: "0-9 Days (W1)", min_days: 0, max_days: 9 }
+      - { label: "10-21 Days (W2)", min_days: 10, max_days: 21 }
+      - { label: "22-30 Days (W3)", min_days: 22, max_days: 30 }
+      - { label: "31-45 Days (W4)", min_days: 31, max_days: 45 }
+      - { label: "46-59 Days (W5)", min_days: 46, max_days: 59 }
+      - { label: "60-120 Days (W6)", min_days: 60, max_days: 120 }
+      - { label: ">120 Days (W7)", min_days: 121, max_days: 9999 }
+    urgency_band_definitions:
+      - { label: "0-1", min_days: 0, max_days: 1 }
+      - { label: "2-3", min_days: 2, max_days: 3 }
+      - { label: "4-6", min_days: 4, max_days: 6 }
+      - { label: "7-9", min_days: 7, max_days: 9 }
+    urgency_configuration:
+      tier_groups: [ "T10-T12", "T13-T15"]
+      booking_window_label: "W1"
+      max_occupancy_pct: 30
+    adjustment_rules:
+      - name: "Thursday Rate Adjustment (Fri Booked)"
+        target_weekday: 3 # Thursday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 1} # Check if Friday is booked
+        actions:
+          - condition: null # Default action if Friday booked
+            multiplier: 1.1
+            reference_day_offset: -1 # Base rate on Wednesday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Sunday Rate Adjustment (Sat Booked)"
+        target_weekday: 6 # Sunday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -1} # Check Saturday
+        actions:
+          - condition: null # Always apply if Saturday booked
+            multiplier: 1.2
+            reference_day_offset: 1 # Base rate on Monday's live rate
+            lookup_day_group: "Mon-Wed"
+      - name: "Friday Orphan Adjustment"
+        target_weekday: 4 # Friday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: -1} # Check if Thursday is booked
+          - {type: "adjacent_day_booked", day_offset: 1}  # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if conditions met
+            multiplier: 0.8
+            reference_day_offset: 1 # Base rate on Saturday's live rate
+            lookup_day_group: "Fri-Sat"
+      - name: "Saturday Booked - Thu/Fri Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [-2, -1] # Thursday (-2) and Friday (-1)
+            check_adjacent_weekday_los: true # Check Wednesday (day before Thursday) is at 1-night
+      - name: "Saturday Booked - Sunday Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [1] # Sunday (+1) only
+            check_adjacent_weekday_los: true # Check Monday (day after Sunday) is at 1-night
+
+  mayamod1:
+    name: "Maya & Mod"
+    pms: guesty
+    listings:
+      - {name: "Maya -- Maya Hotel Retreat", id: "6901008185d27c0022d3ba14", batna: 549.00, batna_weekday: 549.00, batna_weekend: 800.00}
+      - {name: "Mod -- The Mod Hotel", id: "6901037df868fc002a10e0d7", batna: 449.00, batna_weekday: 449.00, batna_weekend: 700.00}
+      - {name: "M&M -- Maya & Mod Double Buyout", id: "6901051a7cc21d0029679ae6", batna: 976.00, batna_weekday: 976.00, batna_weekend: 1500.00}
+    rate_group_mapping:
+      rate_1: ["6901008185d27c0022d3ba14"] # Maya
+      rate_2: ["6901037df868fc002a10e0d7"] # Mod
+      rate_3: ["6901051a7cc21d0029679ae6"] # M&M Double Buyout
+    booking_window_definitions:
+      - { label: "0-9 Days (W1)", min_days: 0, max_days: 9 }
+      - { label: "10-21 Days (W2)", min_days: 10, max_days: 21 }
+      - { label: "22-30 Days (W3)", min_days: 22, max_days: 30 }
+      - { label: "31-45 Days (W4)", min_days: 31, max_days: 45 }
+      - { label: "46-59 Days (W5)", min_days: 46, max_days: 59 }
+      - { label: "60-120 Days (W6)", min_days: 60, max_days: 120 }
+      - { label: ">120 Days (W7)", min_days: 121, max_days: 9999 }
+    urgency_band_definitions:
+      - { label: "0-1", min_days: 0, max_days: 1 }
+      - { label: "2-3", min_days: 2, max_days: 3 }
+      - { label: "4-6", min_days: 4, max_days: 6 }
+      - { label: "7-9", min_days: 7, max_days: 9 }
+    urgency_configuration:
+      tier_groups: [ "T10-T12", "T13-T15"]
+      booking_window_label: "W1"
+      max_occupancy_pct: 30
+    adjustment_rules:
+      - name: "Saturday Booked - Thu/Fri Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [-2, -1] # Thursday (-2) and Friday (-1)
+            check_adjacent_weekday_los: true # Check Wednesday (day before Thursday) is at 1-night
+      - name: "Saturday Booked - Sunday Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [1] # Sunday (+1) only
+            check_adjacent_weekday_los: true # Check Monday (day after Sunday) is at 1-night

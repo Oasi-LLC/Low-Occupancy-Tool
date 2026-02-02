@@ -1,0 +1,62 @@
+# Centralized Date Range Configuration
+# This file manages all date ranges used throughout the pricing tool
+
+# Current year configuration
+current_year: 2025
+
+# Data generation ranges
+data_generation:
+  # Full calculation range - used for comprehensive rate calculations
+  full_start_date: "2025-09-01"
+  full_end_date: "2026-12-31"  # Changed from 2027 to current year
+  
+  # Operational range - used for daily operations and data pulls
+  operational_start_date: "2025-09-01"
+  operational_end_date: "2026-12-31"
+  
+  # User interface range - default range shown in UI
+  ui_default_start_date: "2025-09-01"
+  ui_default_end_date: "2026-12-31"
+
+# Dynamic calculation settings
+dynamic_calculations:
+  # Scheduler dynamic range: last month to end of current year
+  scheduler_start_offset_months: -1  # -1 = last month
+  scheduler_end_offset_months: 0     # 0 = end of current year
+  
+  # Nightly pull range: same start as bulk processing to +492 days (extended for rate pushes)
+  nightly_pull_days_ahead: 492
+  nightly_pull_use_bulk_start: true  # Use same start date as bulk processing
+  
+  # Bulk processing range: 30 days ago to end of current year + 15 months (extended for rate pushes)
+  bulk_processing_days_back: 30
+  bulk_processing_end_offset_months: 15   # Extended to cover February 2027
+
+# API operations
+api_operations:
+  # Default range for manual API calls
+  default_start_date: "2025-09-01"
+  default_end_date: "2026-05-31"
+  
+  # Maximum range for API calls (safety limit)
+  max_start_date: "2025-09-01"
+  max_end_date: "2026-12-31"
+
+# Data retention
+data_retention:
+  # Maximum age for data before refresh (hours)
+  max_data_age_hours: 24
+  
+  # Archive retention (days)
+  archive_retention_days: 365
+
+# Validation rules
+validation:
+  # Minimum date range (days)
+  min_range_days: 1
+  
+  # Maximum date range (days)
+  max_range_days: 1095  # ~3 years
+  
+  # Future date limit (days from today)
+  max_future_days: 730  # ~2 years
