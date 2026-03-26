@@ -28,7 +28,8 @@ python export_low_occupancy_dates.py \
 **CLI**:
 ```bash
 python export_low_occupancy_dates.py \
-  --properties onera wb1 azulik1 \
+  # --properties onera wb1 azulik1 \
+  --properties onera wb1 \
   --lookahead-days 90
 ```
 
@@ -82,7 +83,7 @@ Groups consecutive low-occupancy dates showing:
 
 ## Special Notes
 
-- **azulik1**: Automatically uses Sun-Thu filtering and May onwards dates
+<!-- - **azulik1**: Automatically uses Sun-Thu filtering and May onwards dates -->
 - **Auto threshold**: Starts at 30%, falls back to 40% if needed
 - **Data freshness**: Skips pull if data is less than 5 hours old (unless forced)
 

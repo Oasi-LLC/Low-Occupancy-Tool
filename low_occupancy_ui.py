@@ -58,8 +58,8 @@ if run_clicked:
             date_sets = result["date_sets"]
 
             special_case_note = ""
-            if "azulik1" in property_selection:
-                special_case_note = " (azulik1: Sun-Thu only, May onwards)"
+            # if "azulik1" in property_selection:
+            #     special_case_note = " (azulik1: Sun-Thu only, May onwards)"
             
             st.success(f"Completed. Threshold used: {threshold_used}%" + (" (fallback to 40%)" if fallback_used else "") + special_case_note)
 
@@ -73,10 +73,13 @@ if run_clicked:
                 with tab:
                     st.subheader(f"{prop}")
                     prop_summary = date_summary[date_summary["Property"] == prop]
-                    weekday_label = "Sun–Thu" if prop == "azulik1" else "Mon–Wed"
+                    # weekday_label = "Sun–Thu" if prop == "azulik1" else ("Mon–Wed (50%), Thu/Sun (30%)" if prop == "onera" else "Mon–Wed")
+                    weekday_label = "Mon–Wed (50%), Thu/Sun (30%)" if prop == "onera" else "Mon–Wed"
                     st.markdown(f"**Per-day summary ({weekday_label}, threshold applied)**")
-                    if prop == "azulik1":
-                        st.info("ℹ️ Special case: azulik1 shows Sun–Thu dates only, from May onwards")
+                    # if prop == "azulik1":
+                    #     st.info("ℹ️ Special case: azulik1 shows Sun–Thu dates only, from May onwards")
+                    if prop == "onera":
+                        st.info("ℹ️ Special case: onera uses 90-day window; Mon–Wed at 50%, Thu/Sun at 30%")
                     st.dataframe(prop_summary, hide_index=True, use_container_width=True)
 
                     if prop in date_sets_by_prop:
@@ -93,9 +96,18 @@ if run_clicked:
                                 "Avg Occupancy %": round(ds["avg_occ"], 2),
                             })
                         ds_df = pd.DataFrame(ds_rows)
-                        weekday_label = "Sun–Thu" if prop == "azulik1" else "Mon–Wed"
+                        # weekday_label = "Sun–Thu" if prop == "azulik1" else ("Mon–Wed (50%), Thu/Sun (30%)" if prop == "onera" else "Mon–Wed")
+                        weekday_label = "Mon–Wed (50%), Thu/Sun (30%)" if prop == "onera" else "Mon–Wed"
                         st.markdown(f"**Date sets (consecutive {weekday_label})**")
                         st.dataframe(ds_df, hide_index=True, use_container_width=True)
+                        csv_bytes = ds_df.to_csv(index=False).encode("utf-8")
+                        st.download_button(
+                            "Export date sets as CSV",
+                            data=csv_bytes,
+                            file_name=f"{datetime.date.today().strftime('%Y-%m-%d')}_{prop}_export.csv",
+                            mime="text/csv",
+                            key=f"download_date_sets_{prop}",
+                        )
                     else:
                         st.info("No date sets for this property.")
 

@@ -77,25 +77,32 @@ def _filter_low_occupancy(generated_df: pd.DataFrame, occupancy_col: str, thresh
     """
     Return rows below threshold, with property-specific weekday filtering.
     Default: Mon-Wed only (weekday 0, 1, 2)
-    Special case for azulik: Sun-Thu only (weekday 6, 0, 1, 2, 3) and from May onwards
+    Special case for onera: Mon/Tue/Wed at 50%, Thu/Sun at 30%
+    # Special case for azulik: Sun-Thu only (weekday 6, 0, 1, 2, 3) and from May onwards
     """
     df = generated_df.copy()
     df[occupancy_col] = pd.to_numeric(df[occupancy_col], errors='coerce')
     df['Date'] = pd.to_datetime(df['Date']).dt.normalize()
     
+    # Special case for onera: Mon(0), Tue(1), Wed(2) at 50%; Thu(3), Sun(6) at 30%
+    if property_name == 'onera':
+        weekday = df['Date'].dt.weekday
+        df = df[(weekday <= 3) | (weekday == 6)]  # Mon–Thu or Sun
+        thr = df['Date'].dt.weekday.apply(lambda w: 50.0 if w <= 2 else 30.0)
+        df = df[df[occupancy_col] < thr]
+        return df
     # Special case for azulik: Sun-Thu (weekday 6, 0, 1, 2, 3) and from May onwards
-    if property_name == 'azulik1':
-        # Filter for Sunday(6), Monday(0), Tuesday(1), Wednesday(2), Thursday(3)
-        weekday_mask = (df['Date'].dt.weekday == 6) | (df['Date'].dt.weekday <= 3)
-        df = df[weekday_mask]
-        # Filter from May 1st of current year onwards
-        today = datetime.date.today()
-        may_start = datetime.date(today.year, 5, 1)
-        df = df[df['Date'].dt.date >= may_start]
-    else:
-        # Default: Keep only Monday(0), Tuesday(1), Wednesday(2)
-        df = df[df['Date'].dt.weekday <= 2]
-    
+    # if property_name == 'azulik1':
+    #     # Filter for Sunday(6), Monday(0), Tuesday(1), Wednesday(2), Thursday(3)
+    #     weekday_mask = (df['Date'].dt.weekday == 6) | (df['Date'].dt.weekday <= 3)
+    #     df = df[weekday_mask]
+    #     # Filter from May 1st of current year onwards
+    #     today = datetime.date.today()
+    #     may_start = datetime.date(today.year, 5, 1)
+    #     df = df[df['Date'].dt.date >= may_start]
+    #     return df[df[occupancy_col] < threshold]
+    # Default: Keep only Monday(0), Tuesday(1), Wednesday(2)
+    df = df[df['Date'].dt.weekday <= 2]
     return df[df[occupancy_col] < threshold]
 
 def _aggregate_property_dates(low_occ_df: pd.DataFrame, occupancy_col: str) -> pd.DataFrame:
@@ -205,9 +212,10 @@ def export_low_occupancy_dates(
             print("⚠️  Warning: Some data pulls failed, but continuing with analysis...")
         print()
     
-    # Calculate date range: today to lookahead_days out
+    # Calculate date range: today to lookahead_days out (onera uses 90-day window)
     today = datetime.date.today()
-    end_date = today + datetime.timedelta(days=lookahead_days)
+    lookahead = max(lookahead_days, 90) if 'onera' in property_selection else lookahead_days
+    end_date = today + datetime.timedelta(days=lookahead)
     
     print(f"📅 Exporting low occupancy dates from {today} to {end_date}")
     
@@ -254,7 +262,12 @@ def export_low_occupancy_dates(
         prop_df = generated_df[generated_df['Unit Pool'] == prop_name].copy()
         if prop_df.empty:
             continue
-        
+        # Onera: 90-day window; others: lookahead_days
+        effective_end = today + datetime.timedelta(days=90 if prop_name == 'onera' else lookahead_days)
+        prop_df = prop_df[prop_df['Date'] <= effective_end]
+        if prop_df.empty:
+            continue
+
         # Apply property-specific filtering
         prop_low_occ_df = _filter_low_occupancy(prop_df, occupancy_col, threshold, property_name=prop_name)
         if not prop_low_occ_df.empty:
@@ -284,6 +297,10 @@ def export_low_occupancy_dates(
             prop_df = generated_df[generated_df['Unit Pool'] == prop_name].copy()
             if prop_df.empty:
                 continue
+            effective_end = today + datetime.timedelta(days=90 if prop_name == 'onera' else lookahead_days)
+            prop_df = prop_df[prop_df['Date'] <= effective_end]
+            if prop_df.empty:
+                continue
             prop_low_occ_df = _filter_low_occupancy(prop_df, occupancy_col, threshold, property_name=prop_name)
             if not prop_low_occ_df.empty:
                 all_low_occ_dfs.append(prop_low_occ_df)
@@ -301,14 +318,15 @@ def export_low_occupancy_dates(
         date_sets_all = _build_date_sets(prop_date_df, occupancy_col)
     
     if not date_sets_all:
-        weekday_desc = "Mon-Wed" if 'azulik1' not in property_selection else "Sun-Thu (azulik1), Mon-Wed (others)"
+        # weekday_desc = "Mon-Wed" if 'azulik1' not in property_selection else "Sun-Thu (azulik1), Mon-Wed (others)"
+        weekday_desc = "Mon-Wed"
         print(f"ℹ️ No qualifying weekday dates found with occupancy less than {threshold}%")
         return None
     
     # Determine weekday description for logging
     weekday_desc = "Mon-Wed"
-    if 'azulik1' in property_selection:
-        weekday_desc = "Sun-Thu (azulik1), Mon-Wed (others)"
+    # if 'azulik1' in property_selection:
+    #     weekday_desc = "Sun-Thu (azulik1), Mon-Wed (others)"
     
     print(f"✅ Found {len(low_occ_df)} rows with occupancy < {threshold}% ({weekday_desc})")
     unique_dates = prop_date_df['Date'].dt.date.unique()
@@ -335,7 +353,8 @@ def export_low_occupancy_dates(
         print("ℹ️ No output file specified; skipping CSV exports (console only).")
     
     # Print summary to console, separated by property
-    weekday_label = "Mon-Wed" if 'azulik1' not in property_selection else "Sun-Thu (azulik1), Mon-Wed (others)"
+    # weekday_label = "Mon-Wed" if 'azulik1' not in property_selection else "Sun-Thu (azulik1), Mon-Wed (others)"
+    weekday_label = "Mon-Wed"
     print(f"\n📋 SUMMARY OF LOW OCCUPANCY DATES ({weekday_label}) BY PROPERTY:")
     print("=" * 50)
     for prop in sorted(date_summary['Property'].unique()):
@@ -345,7 +364,8 @@ def export_low_occupancy_dates(
             print(f"{row['Date']}: {row['Occupancy_%']:.1f}% ({row['Listings_Count']} listings)")
     
     # Print grouped date sets, separated by property (includes single-day spans)
-    weekday_label = "Mon-Wed" if 'azulik1' not in property_selection else "Sun-Thu (azulik1), Mon-Wed (others)"
+    # weekday_label = "Mon-Wed" if 'azulik1' not in property_selection else "Sun-Thu (azulik1), Mon-Wed (others)"
+    weekday_label = "Mon-Wed"
     print(f"\n📅 DATE SETS (grouped consecutive {weekday_label} days) BY PROPERTY:")
     print("=" * 50)
     date_sets_by_prop = {}

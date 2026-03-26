@@ -700,86 +700,8 @@ properties:
             target_adjacent_days: [1] # Sunday (+1) only
             check_adjacent_weekday_los: true # Check Monday (day after Sunday) is at 1-night
 
-  azulik1:
-    name: "Azulik"
-    pms: cloudbeds
-    total_units: 48 # 8 + 12 + 4 + 11 + 11 + 1 + 1
-    listings:
-      - {name: "AZULIK Jungle Villa", id: "283597___530612", units: 8, batna: 4638.00}
-      - {name: "AZULIK Mayan Villa", id: "283597___530715", units: 12, batna: 5565.00}
-      - {name: "AZULIK Aztec Villa", id: "283597___530718", units: 4, batna: 6122.00}
-      - {name: "AZULIK Sea Villa", id: "283597___530720", units: 11, batna: 7420.00}
-      - {name: "AZULIK Sky Villa", id: "283597___530761", units: 11, batna: 9275.00}
-      - {name: "AZULIK Moon Villa", id: "283597___530766", units: 1, batna: 51940.00}
-      - {name: "AZULIK Aqua Villa", id: "283597___530767", units: 1, batna: 40810.00}
-    rate_group_mapping:
-      rate_1: ["283597___530612", "283597___530718"] # Jungle Villa, Aztec Villa
-      rate_2: ["283597___530715", "283597___530720", "283597___530761"] # Mayan Villa, Sea Villa, Sky Villa
-      rate_3: ["283597___530766", "283597___530767"] # Moon Villa, Aqua Villa
-    booking_window_definitions:
-      - { label: "0-9 Days (W1)", min_days: 0, max_days: 9 }
-      - { label: "10-21 Days (W2)", min_days: 10, max_days: 21 }
-      - { label: "22-30 Days (W3)", min_days: 22, max_days: 30 }
-      - { label: "31-45 Days (W4)", min_days: 31, max_days: 45 }
-      - { label: "46-59 Days (W5)", min_days: 46, max_days: 59 }
-      - { label: "60-120 Days (W6)", min_days: 60, max_days: 120 }
-      - { label: ">120 Days (W7)", min_days: 121, max_days: 9999 }
-    urgency_band_definitions:
-      - { label: "0-1", min_days: 0, max_days: 1 }
-      - { label: "2-3", min_days: 2, max_days: 3 }
-      - { label: "4-6", min_days: 4, max_days: 6 }
-      - { label: "7-9", min_days: 7, max_days: 9 }
-    urgency_configuration:
-      tier_groups: [ "T10-T12", "T13-T15"]
-      booking_window_label: "W1"
-      max_occupancy_pct: 30
-    adjustment_rules:
-      - name: "Thursday Rate Adjustment (Fri Booked)"
-        target_weekday: 3 # Thursday
-        conditions:
-          - {type: "adjacent_day_booked", day_offset: 1} # Check if Friday is booked
-        actions:
-          - condition: null # Default action if Friday booked
-            multiplier: 1.1
-            reference_day_offset: -1 # Base rate on Wednesday's live rate
-            lookup_day_group: "Mon-Wed"
-      - name: "Sunday Rate Adjustment (Sat Booked)"
-        target_weekday: 6 # Sunday
-        conditions:
-          - {type: "adjacent_day_booked", day_offset: -1} # Check Saturday
-        actions:
-          - condition: null # Always apply if Saturday booked
-            multiplier: 1.2
-            reference_day_offset: 1 # Base rate on Monday's live rate
-            lookup_day_group: "Mon-Wed"
-      - name: "Friday Orphan Adjustment"
-        target_weekday: 4 # Friday
-        conditions:
-          - {type: "adjacent_day_booked", day_offset: -1} # Check if Thursday is booked
-          - {type: "adjacent_day_booked", day_offset: 1}  # Check if Saturday is booked
-        actions:
-          - condition: null # Always apply if conditions met
-            multiplier: 0.8
-            reference_day_offset: 1 # Base rate on Saturday's live rate
-            lookup_day_group: "Fri-Sat"
-      - name: "Saturday Booked - Thu/Fri Min Stay Reduction"
-        target_weekday: 5 # Saturday
-        conditions:
-          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
-        actions:
-          - condition: null # Always apply if Saturday booked
-            min_stay_adjustment: 1 # Reduce min stay to 1 night
-            target_adjacent_days: [-2, -1] # Thursday (-2) and Friday (-1)
-            check_adjacent_weekday_los: true # Check Wednesday (day before Thursday) is at 1-night
-      - name: "Saturday Booked - Sunday Min Stay Reduction"
-        target_weekday: 5 # Saturday
-        conditions:
-          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
-        actions:
-          - condition: null # Always apply if Saturday booked
-            min_stay_adjustment: 1 # Reduce min stay to 1 night
-            target_adjacent_days: [1] # Sunday (+1) only
-            check_adjacent_weekday_los: true # Check Monday (day after Sunday) is at 1-night
+  # azulik1:
+  #   Disabled intentionally
 
   mayamod1:
     name: "Maya & Mod"
