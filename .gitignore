@@ -55,8 +55,10 @@ data/outputs/
 *.csv
 !requirements.txt
 
-# Streamlit
-.streamlit/
+# Streamlit (keep config.toml in repo; ignore local secrets)
+.streamlit/*
+!.streamlit/config.toml
+.streamlit/secrets.toml
 
 # Jupyter Notebook
 .ipynb_checkpoints

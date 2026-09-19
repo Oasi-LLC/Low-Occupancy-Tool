@@ -459,22 +459,40 @@ def trigger_low_occupancy_data_generation(property_selection: list, start_date: 
 
             # Calculate property-wide occupancy for each date
             # Group by date and calculate total occupancy
-            total_units = prop_config.get('total_units')
+            total_units = prop_config.get("total_units")
             if not total_units:
                 # Sum units from listings
-                total_units = sum(listing.get('units', 1) for listing in prop_config.get('listings', []))
-            
+                total_units = sum(listing.get("units", 1) for listing in prop_config.get("listings", []))
+
             if total_units == 0:
                 print(f"⚠️  Total units is 0 for {prop_name}. Skipping.")
                 continue
 
+            # Use only listings present in this pl_daily file. Partial pulls (fewer listings than
+            # configured) would otherwise sum too few vacant units against the full portfolio size
+            # and never show low occupancy.
+            listing_ids_in_data = set(pl_df["Listing ID"].astype(str).unique())
+            units_for_occ = sum(
+                listing.get("units", 1)
+                for listing in prop_config.get("listings", [])
+                if str(listing.get("id")) in listing_ids_in_data
+            )
+            if units_for_occ == 0:
+                print(f"⚠️  pl_daily has no rows matching config listing IDs for {prop_name}. Skipping.")
+                continue
+            if units_for_occ < total_units:
+                print(
+                    f"ℹ️  {prop_name}: occupancy uses {units_for_occ} units in pl_daily "
+                    f"({len(listing_ids_in_data)} listings), not full portfolio ({total_units})."
+                )
+
             # Calculate occupancy by date
             occupancy_by_date = {}
-            for date_val in pl_df['Date'].unique():
-                date_data = pl_df[pl_df['Date'] == date_val]
-                total_vacant = date_data['Vacant Units'].sum()
-                occupied_units = total_units - total_vacant
-                occupancy_pct = (occupied_units / total_units) * 100 if total_units > 0 else 0
+            for date_val in pl_df["Date"].unique():
+                date_data = pl_df[pl_df["Date"] == date_val]
+                total_vacant = date_data["Vacant Units"].sum()
+                occupied_units = units_for_occ - total_vacant
+                occupancy_pct = (occupied_units / units_for_occ) * 100 if units_for_occ > 0 else 0
                 occupancy_by_date[date_val] = occupancy_pct
 
             # Process each listing and date

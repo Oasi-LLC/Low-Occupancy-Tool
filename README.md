@@ -68,10 +68,12 @@ This package contains **everything** you need to run the Low Occupancy Accelerat
    
    This will create `data/{property}/pl_daily_{property}.csv` files.
 
-6. **Run the tool:**
+6. **Run the tool** (activate `venv` first; default port **8510** is set in `.streamlit/config.toml` to avoid colliding with apps on 8501):
    ```bash
+   source venv/bin/activate
    streamlit run low_occupancy_ui.py
    ```
+   Then open **http://localhost:8510**. To use another port: `streamlit run low_occupancy_ui.py --server.port 8720`
 
 ## 📁 Directory Structure
 

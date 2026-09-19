@@ -1,0 +1,3 @@
+# Low Occupancy UI — avoid clashing with other tools on 8501
+[server]
+port = 8510

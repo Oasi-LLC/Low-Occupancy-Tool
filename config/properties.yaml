@@ -601,3 +601,76 @@ properties:
             min_stay_adjustment: 1 # Reduce min stay to 1 night
             target_adjacent_days: [1] # Sunday (+1) only
             check_adjacent_weekday_los: true # Check Monday (day after Sunday) is at 1-night
+
+  lafavezion:
+    name: "Lafave Zion"
+    pms: resnexus
+    listings:
+      - {name: "LaFave: Luxury Rentals at Zion--(3BR/2BA) Johnson Mountain Villa", id: "4140___8114", batna: 836.00}
+      - {name: "LaFave: Luxury Rentals at Zion--(6BR/4BA) The Gallery House", id: "4140___8115", batna: 1280.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Suite BIG (1BR/1BA) Temple of Sinawava", id: "4140___8117", batna: 402.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Suite BIG (1BR/1BA) The Sentinel", id: "4140___8118", batna: 402.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Suite BIG (1BR/1BA) The Sundial", id: "4140___8119", batna: 402.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Suite SMALL (1BR/1BA) The Watchman", id: "4140___8120", batna: 348.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Suite SMALL (1BR/1BA) The Zion", id: "4140___8121", batna: 348.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Villa Game (2BR/2BA) Emerald Pools", id: "4140___8122", batna: 644.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Villa Game (2BR/2BA) The Subway", id: "4140___8123", batna: 644.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Villa Game (2BR/2BA) Meridian Tower", id: "4140___8124", batna: 644.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Premium Villa (2BR/2BA) Checkerboard Mesa", id: "4140___8125", batna: 701.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Premium Villa (2BR/2BA) Echo Canyon", id: "4140___8126", batna: 701.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Premium Villa (2BR/2BA) Mountain of the Sun", id: "4140___8127", batna: 701.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Premium Villa (2BR/2BA) Mystery Falls", id: "4140___8128", batna: 701.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Premium Villa (2BR/2BA) Big Springs", id: "4140___8129", batna: 701.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Premium Villa (2BR/2BA) East Temple", id: "4140___8130", batna: 701.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Villa Game (2BR/2BA) Lava Point", id: "4140___8131", batna: 644.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Premium Villa (2BR/2BA) Phantom Valley", id: "4140___8132", batna: 701.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Premium Villa (2BR/2BA) Pine Creek", id: "4140___8133", batna: 701.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Deluxe Villa (2BR/1BA) Hidden Canyon", id: "4140___8134", batna: 465.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Deluxe Villa (2BR/1BA) Kolob Arch", id: "4140___8135", batna: 465.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Deluxe Villa (2BR/1BA) Northgate Peaks", id: "4140___8136", batna: 465.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Deluxe Villa (2BR/1BA) Orderville Canyon", id: "4140___8137", batna: 465.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Deluxe Villa (2BR/1BA) Kayenta", id: "4140___8138", batna: 465.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Deluxe Villa (2BR/1BA) Mount Kinesava", id: "4140___8139", batna: 465.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Deluxe Villa (2BR/1BA) Weeping Rock", id: "4140___8140", batna: 465.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Premier Villa (3BR/3BA) Angels Landing", id: "4140___8141", batna: 871.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Premier Villa (3BR/3BA) The Narrows", id: "4140___8142", batna: 871.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Premier Villa (3BR/3BA) Cathedral Mountain", id: "4140___8143", batna: 871.00}
+      - {name: "LaFave: Luxury Rentals at Zion--Premier Villa (3BR/3BA) Virgin River", id: "4140___8144", batna: 871.00}
+    rate_group_mapping:
+      rate_1: ["4140___8114", "4140___8115", "4140___8117", "4140___8118", "4140___8119", "4140___8120", "4140___8121", "4140___8122", "4140___8123", "4140___8124", "4140___8125", "4140___8126", "4140___8127", "4140___8128", "4140___8129", "4140___8130", "4140___8131", "4140___8132", "4140___8133", "4140___8134", "4140___8135", "4140___8136", "4140___8137", "4140___8138", "4140___8139", "4140___8140", "4140___8141", "4140___8142", "4140___8143", "4140___8144"]
+    booking_window_definitions:
+      - { label: "0-9 Days (W1)", min_days: 0, max_days: 9 }
+      - { label: "10-21 Days (W2)", min_days: 10, max_days: 21 }
+      - { label: "22-30 Days (W3)", min_days: 22, max_days: 30 }
+      - { label: "31-45 Days (W4)", min_days: 31, max_days: 45 }
+      - { label: "46-59 Days (W5)", min_days: 46, max_days: 59 }
+      - { label: "60-120 Days (W6)", min_days: 60, max_days: 120 }
+      - { label: ">120 Days (W7)", min_days: 121, max_days: 9999 }
+    urgency_band_definitions:
+      - { label: "0-1", min_days: 0, max_days: 1 }
+      - { label: "2-3", min_days: 2, max_days: 3 }
+      - { label: "4-6", min_days: 4, max_days: 6 }
+      - { label: "7-9", min_days: 7, max_days: 9 }
+    urgency_configuration:
+      tier_groups: ["T10-T12", "T13-T15"]
+      booking_window_label: "W1"
+      max_occupancy_pct: 30
+    adjustment_rules:
+      - name: "Saturday Booked - Thu/Fri Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [-2, -1] # Thursday (-2) and Friday (-1)
+            check_adjacent_weekday_los: true # Check Wednesday (day before Thursday) is at 1-night
+      - name: "Saturday Booked - Sunday Min Stay Reduction"
+        target_weekday: 5 # Saturday
+        conditions:
+          - {type: "adjacent_day_booked", day_offset: 0} # Check if Saturday is booked
+        actions:
+          - condition: null # Always apply if Saturday booked
+            min_stay_adjustment: 1 # Reduce min stay to 1 night
+            target_adjacent_days: [1] # Sunday (+1) only
+            check_adjacent_weekday_los: true # Check Monday (day after Sunday) is at 1-night

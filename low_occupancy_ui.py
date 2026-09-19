@@ -4,7 +4,7 @@ import pandas as pd
 import datetime
 
 from utils.backend_interface import get_available_properties
-from export_low_occupancy_dates import export_low_occupancy_dates
+from export_low_occupancy_dates import export_low_occupancy_dates, ACCELERATOR_PROPERTIES
 
 st.set_page_config(page_title="Low Occupancy Accelerator Dates", layout="wide")
 
@@ -12,7 +12,8 @@ st.title("Low Occupancy Accelerator Dates")
 
 # Inputs
 available_props = get_available_properties() or []
-default_props = [p for p in available_props if p in ("onera", "wb1")] or available_props
+_default_prop_order = ("onera", "wb1", "lafavezion")
+default_props = [p for p in _default_prop_order if p in available_props] or available_props
 
 with st.expander("Controls", expanded=True):
     input_col1, input_col2, input_col3 = st.columns([2, 2, 2])
@@ -24,7 +25,7 @@ with st.expander("Controls", expanded=True):
         threshold_mode = st.radio("Threshold mode", ["auto", "manual"], index=0, horizontal=True)
         manual_threshold = None
         if threshold_mode == "manual":
-            manual_threshold = st.number_input("Manual threshold (%)", min_value=1.0, max_value=100.0, value=30.0, step=1.0)
+            manual_threshold = st.number_input("Manual threshold (%)", min_value=1.0, max_value=100.0, value=40.0, step=1.0)
     
     aux_col1, aux_col2 = st.columns([2, 2])
     with aux_col1:
@@ -47,6 +48,7 @@ if run_clicked:
                 threshold_mode=threshold_mode,
                 manual_threshold=manual_threshold,
                 force_fresh_pull=force_fresh_pull,
+                verbose=False,
             )
         
         if not result:
@@ -61,7 +63,11 @@ if run_clicked:
             # if "azulik1" in property_selection:
             #     special_case_note = " (azulik1: Sun-Thu only, May onwards)"
             
-            st.success(f"Completed. Threshold used: {threshold_used}%" + (" (fallback to 40%)" if fallback_used else "") + special_case_note)
+            st.success(
+                f"Completed. Threshold used: {threshold_used}%"
+                + (" (fallback to 60%)" if fallback_used else "")
+                + special_case_note
+            )
 
             # Group date sets by property for display
             date_sets_by_prop = {}
@@ -73,13 +79,22 @@ if run_clicked:
                 with tab:
                     st.subheader(f"{prop}")
                     prop_summary = date_summary[date_summary["Property"] == prop]
-                    # weekday_label = "Sun–Thu" if prop == "azulik1" else ("Mon–Wed (50%), Thu/Sun (30%)" if prop == "onera" else "Mon–Wed")
-                    weekday_label = "Mon–Wed (50%), Thu/Sun (30%)" if prop == "onera" else "Mon–Wed"
-                    st.markdown(f"**Per-day summary ({weekday_label}, threshold applied)**")
-                    # if prop == "azulik1":
-                    #     st.info("ℹ️ Special case: azulik1 shows Sun–Thu dates only, from May onwards")
-                    if prop == "onera":
-                        st.info("ℹ️ Special case: onera uses 90-day window; Mon–Wed at 50%, Thu/Sun at 30%")
+                    weekday_label = (
+                        "Sun–Thu, occ < threshold"
+                        if prop in ACCELERATOR_PROPERTIES
+                        else "Mon–Wed, occ < threshold"
+                    )
+                    if prop == "lafavezion":
+                        weekday_label += "; Aug 2026 Fri–Sat included"
+                    st.markdown(f"**Per-day summary ({weekday_label})**")
+                    if prop in ACCELERATOR_PROPERTIES:
+                        note = (
+                            "ℹ️ Accelerator: today + 60 days; Sun–Thu; "
+                            "occupancy < 40% per property, or < 60% if that property has fewer than 6 date sets"
+                        )
+                        if prop == "lafavezion":
+                            note += "; all August 2026 Fri–Sat included"
+                        st.info(note)
                     st.dataframe(prop_summary, hide_index=True, use_container_width=True)
 
                     if prop in date_sets_by_prop:
@@ -96,8 +111,13 @@ if run_clicked:
                                 "Avg Occupancy %": round(ds["avg_occ"], 2),
                             })
                         ds_df = pd.DataFrame(ds_rows)
-                        # weekday_label = "Sun–Thu" if prop == "azulik1" else ("Mon–Wed (50%), Thu/Sun (30%)" if prop == "onera" else "Mon–Wed")
-                        weekday_label = "Mon–Wed (50%), Thu/Sun (30%)" if prop == "onera" else "Mon–Wed"
+                        weekday_label = (
+                            "Sun–Thu, occ < threshold"
+                            if prop in ACCELERATOR_PROPERTIES
+                            else "Mon–Wed, occ < threshold"
+                        )
+                        if prop == "lafavezion":
+                            weekday_label += "; Aug 2026 Fri–Sat included"
                         st.markdown(f"**Date sets (consecutive {weekday_label})**")
                         st.dataframe(ds_df, hide_index=True, use_container_width=True)
                         csv_bytes = ds_df.to_csv(index=False).encode("utf-8")

@@ -5,10 +5,11 @@
 ### Option 1: Streamlit UI (Easiest)
 
 ```bash
+source venv/bin/activate
 streamlit run low_occupancy_ui.py
 ```
 
-Then open http://localhost:8501 in your browser.
+Then open **http://localhost:8510** in your browser (default port is set in `.streamlit/config.toml` so it does not use 8501). Override with `streamlit run low_occupancy_ui.py --server.port 8720` if 8510 is taken.
 
 ### Option 2: Command Line
 

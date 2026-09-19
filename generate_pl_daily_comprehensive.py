@@ -272,7 +272,9 @@ def generate_pl_daily_for_property_batched(property_key, start_date, end_date):
     print(f"🔍 Generating pl_daily data for {property_name} ({property_key}) - BATCH MODE")
     print(f"📅 Date range: {start_date} to {end_date}")
     print(f"🏢 PMS: {pms}")
-    print(f"🏠 Listings: {len(listings)} (processing in 4 batches of 6)")
+    batch_size = 6
+    batches = [listings[i:i + batch_size] for i in range(0, len(listings), batch_size)]
+    print(f"🏠 Listings: {len(listings)} (batch mode: {len(batches)} batches of up to {batch_size})")
     print("=" * 60)
     
     property_start = time.time()
@@ -283,16 +285,15 @@ def generate_pl_daily_for_property_batched(property_key, start_date, end_date):
     reservations_time = time.time() - t0
     print(f"📊 Found {len(all_reservations)} total reservations from {pms} (fetched in {reservations_time:.2f}s)\n")
     
-    # Split listings into 4 batches of 6 each
-    batch_size = 6
-    batches = [listings[i:i + batch_size] for i in range(0, len(listings), batch_size)]
-    
     all_records = []
     failed_batches = []
     
     # Process each batch
     for batch_num, batch_listings in enumerate(batches, 1):
-        print(f"📦 Batch {batch_num}/4: Processing listings {((batch_num-1)*batch_size)+1}-{min(batch_num*batch_size, len(listings))}...")
+        print(
+            f"📦 Batch {batch_num}/{len(batches)}: Processing listings "
+            f"{((batch_num - 1) * batch_size) + 1}-{min(batch_num * batch_size, len(listings))}..."
+        )
         batch_start = time.time()
         
         batch_records = []
@@ -334,7 +335,7 @@ def generate_pl_daily_for_property_batched(property_key, start_date, end_date):
         
         # Wait between batches (except for the last one)
         if batch_num < len(batches):
-            print(f"⏳ Waiting 75s before next batch...")
+            print("⏳ Waiting 75s before next batch...")
             time.sleep(75)
     
     # Retry failed batches once
@@ -412,8 +413,14 @@ def test_property(property_key, start_date=None, end_date=None):
     print(f"📅 Date range: {start_date} to {end_date}")
     print("=" * 60)
     
-    # Generate pl_daily data - use batch processing for onera property
-    if property_key == 'onera':
+    # Onera historically used batching; any property with many listings hits PriceLabs rate
+    # limits when all listing_prices / overrides calls run in one parallel pool (silent drops).
+    with open("config/properties.yaml", "r") as f:
+        _cfg = yaml.safe_load(f)
+    _listings = _cfg.get("properties", {}).get(property_key, {}).get("listings", [])
+    use_batch = property_key == "onera" or len(_listings) > 9
+
+    if use_batch:
         pl_daily_data = generate_pl_daily_for_property_batched(property_key, start_date, end_date)
     else:
         pl_daily_data = generate_pl_daily_for_property(property_key, start_date, end_date)
